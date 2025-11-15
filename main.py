@@ -30,11 +30,11 @@ input_size = 2
 hidden_size = 4
 output_size = 1
 
-# Initialize weights with small random values
-W1 = np.random.randn(input_size, hidden_size) * 0.1  # Shape: (2, 4)
-W2 = np.random.randn(hidden_size, output_size) * 0.1 # Shape: (4, 1)
+# Initialize weights with LARGER random values for better learning
+W1 = np.random.randn(input_size, hidden_size) * 0.5  # Increased from 0.1
+W2 = np.random.randn(hidden_size, output_size) * 0.5 # Increased from 0.1
 
-# Initialize biases to zero
+# Initialize biases to zeros
 b1 = np.zeros((1, hidden_size))  # Shape: (1, 4)
 b2 = np.zeros((1, output_size))  # Shape: (1, 1)
 
@@ -49,7 +49,7 @@ print(W1)
 print()
 
 # ============================================================================
-# Step 3: Forward Pass
+# Step 3: Forward Pass & Activation Functions
 # ============================================================================
 def sigmoid(x):
     """The sigmoid activation function - squishes values between 0 and 1"""
@@ -74,21 +74,19 @@ def forward_pass(X, W1, b1, W2, b2):
     
     return Z1, A1, Z2, A2
 
-print("=== STEP 3: FORWARD PASS ===")
+print("=== STEP 3: FORWARD PASS (INITIAL) ===")
 Z1, A1, Z2, A2 = forward_pass(X, W1, b1, W2, b2)
 
 print("Hidden layer activation A1 shape:", A1.shape)
 print("Output predictions A2 shape:", A2.shape)
-print("\nUntrained predictions:")
+print("\nBefore training:")
 for i in range(len(X)):
     print(f"Input: {X[i]} -> Prediction: {A2[i][0]:.4f} (true: {y[i][0]})")
 print()
 
 # ============================================================================
-# Step 4: Backpropagation
+# Step 4: Backpropagation & Loss Functions
 # ============================================================================
-learning_rate = 0.1
-
 def compute_loss(y_true, y_pred):
     """Calculate Mean Squared Error loss"""
     return np.mean(np.square(y_true - y_pred))
@@ -119,7 +117,6 @@ def backward_pass(X, y, Z1, A1, Z2, A2, W2):
 print("=== STEP 4: BACKPROPAGATION ===")
 initial_loss = compute_loss(y, A2)
 print(f"Initial Loss: {initial_loss:.4f}")
-print()
 
 dW1, db1, dW2, db2 = backward_pass(X, y, Z1, A1, Z2, A2, W2)
 
@@ -128,6 +125,59 @@ print("dW1 shape:", dW1.shape)
 print("db1 shape:", db1.shape)
 print("dW2 shape:", dW2.shape)
 print("db2 shape:", db2.shape)
-print("\nSample gradients dW1:")
+print("\nSample gradient dW1 (should be larger now):")
 print(dW1)
+print(f"Average gradient magnitude: {np.mean(np.abs(dW1)):.6f}")
 print()
+
+# ============================================================================
+# Step 5: Training Loop
+# ============================================================================
+print("=== STEP 5: TRAINING LOOP ===")
+
+epochs = 20000           # More epochs
+learning_rate = 1.0      # Much larger learning rate
+loss_history = []
+
+for epoch in range(epochs):
+    # Forward pass
+    Z1, A1, Z2, A2 = forward_pass(X, W1, b1, W2, b2)
+    
+    # Compute loss
+    loss = compute_loss(y, A2)
+    loss_history.append(loss)
+    
+    # Backward pass
+    dW1, db1, dW2, db2 = backward_pass(X, y, Z1, A1, Z2, A2, W2)
+    
+    # Update weights and biases
+    W1 -= learning_rate * dW1
+    b1 -= learning_rate * db1
+    W2 -= learning_rate * dW2
+    b2 -= learning_rate * db2
+    
+    # Print progress every 2000 epochs
+    if epoch % 2000 == 0:
+        grad_magnitude = np.mean(np.abs(dW1))
+        print(f"Epoch {epoch:5d} | Loss: {loss:.8f} | Avg|dW1|: {grad_magnitude:.8f}")
+
+# Final results
+print("\n=== TRAINING COMPLETE ===")
+print(f"Final Loss: {loss_history[-1]:.8f}")
+print(f"Loss decreased: {loss_history[0]:.4f} → {loss_history[-1]:.8f}")
+
+# Show final predictions
+Z1, A1, Z2, A2 = forward_pass(X, W1, b1, W2, b2)
+print("\nFinal Predictions:")
+print("-" * 50)
+for i in range(len(X)):
+    pred = A2[i][0]
+    target = y[i][0]
+    binary = 1 if pred > 0.5 else 0
+    correct = "✓" if binary == target else "✗"
+    print(f"Input: {X[i]} | Pred: {pred:.4f} | Target: {target} | {correct}")
+
+# Calculate accuracy
+predictions_binary = (A2 > 0.5).astype(int)
+accuracy = np.mean(predictions_binary == y) * 100
+print(f"\nFinal Accuracy: {accuracy:.1f}%")
